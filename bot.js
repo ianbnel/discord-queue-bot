@@ -42,7 +42,7 @@ client.on('interactionCreate', async interaction => {
         if (queue.includes(userId)) {
             await interaction.reply({ 
                 content: 'You are already in the queue!',
-                ephemeral: true 
+                flags: ['Ephemeral'] 
             });
             return;
         }
@@ -51,7 +51,7 @@ client.on('interactionCreate', async interaction => {
         queue.push(userId);
         await interaction.reply({ 
             content: 'You have been added to the queue!',
-            ephemeral: true 
+            flags: ['Ephemeral']
         });
 
         // Check for match
@@ -59,20 +59,23 @@ client.on('interactionCreate', async interaction => {
             const user1 = queue.shift();
             const user2 = queue.shift();
 
-            // Send match notifications
-            const channel = interaction.channel;
-            await channel.send(`Match found! <@${user1}> and <@${user2}> have been matched!`);
+            // send private match notifications
+            await interaction.followUp({
+                content: `You've been matched with <@${user2}>!`,
+                flags: ['Ephemeral']
+            });
 
-            // DM the matched users
-            try {
-                const user1DM = await client.users.fetch(user1);
-                const user2DM = await client.users.fetch(user2);
-                
-                await user1DM.send(`You've been matched with <@${user2}>!`);
-                await user2DM.send(`You've been matched with <@${user1}>!`);
-            } catch (error) {
-                console.error('Error sending DMs:', error);
+            // Find the other user's interaction to send them a notification
+            const user2Member = interaction.guild.members.cache.get(user2);
+            if (user2Member) {
+                await interaction.followUp({
+                    content: `<@${user2}>, you've been matched with <@${user1}>!`,
+                    flags: ['Ephemeral']
+                });
             }
+
+            // Public announcement in channel
+            await interaction.channel.send(`A match has been made!`);
         }
     }
 });
